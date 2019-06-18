@@ -1,17 +1,17 @@
-const path = require('path')
-const webpack = require('webpack')
-const MpvuePlugin = require('webpack-mpvue-asset-plugin')
-const MpvueEntry = require('mpvue-entry')
-const CopyWebpackPlugin = require('copy-webpack-plugin')
-const utils = require('./utils')
-const config = require('../config')
-const vueLoaderConfig = require('./vue-loader.conf')
+const path = require('path');
+const webpack = require('webpack');
+const MpvuePlugin = require('webpack-mpvue-asset-plugin');
+const MpvueEntry = require('mpvue-entry');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
+const utils = require('./utils');
+const config = require('../config');
+const vueLoaderConfig = require('./vue-loader.conf');
 
-function resolve (dir) {
-  return path.join(__dirname, '..', dir)
+function resolve(dir) {
+  return path.join(__dirname, '..', dir);
 }
 
-const entry = MpvueEntry.getEntry('./src/app.json')
+const entry = MpvueEntry.getEntry('./src/app.json');
 
 module.exports = {
   entry,
@@ -19,19 +19,21 @@ module.exports = {
   output: {
     path: config.build.assetsRoot,
     filename: '[name].js',
-    publicPath: process.env.NODE_ENV === 'production'
-      ? config.build.assetsPublicPath
-      : config.dev.assetsPublicPath
+    publicPath:
+      process.env.NODE_ENV === 'production'
+        ? config.build.assetsPublicPath
+        : config.dev.assetsPublicPath,
   },
   resolve: {
     extensions: ['.js', '.vue', '.json'],
     alias: {
       '@': resolve('src'),
-      vue: 'mpvue'
+      vue: 'mpvue',
+      '@config': resolve(`src/config/config.${process.env.NODE_ENV}.js`),
     },
     symlinks: false,
     aliasFields: ['mpvue', 'weapp', 'browser'],
-    mainFields: ['browser', 'module', 'main']
+    mainFields: ['browser', 'module', 'main'],
   },
   module: {
     rules: [
@@ -41,18 +43,18 @@ module.exports = {
         enforce: 'pre',
         include: resolve('src'),
         options: {
-          formatter: require('eslint-friendly-formatter')
-        }
+          formatter: require('eslint-friendly-formatter'),
+        },
       },
       {
         test: /\.vue$/,
         loader: 'mpvue-loader',
-        options: vueLoaderConfig
+        options: vueLoaderConfig,
       },
       {
         test: /\.vue$/,
         loader: 'mpvue-config-loader',
-        exclude: [resolve('src/components')]
+        exclude: [resolve('src/components')],
       },
       {
         test: /\.js$/,
@@ -61,54 +63,54 @@ module.exports = {
           'babel-loader',
           {
             loader: 'mpvue-loader',
-            options: Object.assign({ checkMPEntry: true }, vueLoaderConfig)
+            options: Object.assign({ checkMPEntry: true }, vueLoaderConfig),
           },
-        ]
+        ],
       },
       {
         test: /\.(png|jpe?g|gif|svg)(\?.*)?$/,
         loader: 'url-loader',
         options: {
-          name: utils.assetsPath('img/[name].[ext]')
-        }
+          name: utils.assetsPath('img/[name].[ext]'),
+        },
       },
       {
         test: /\.(mp4|webm|ogg|mp3|wav|flac|aac)(\?.*)?$/,
         loader: 'url-loader',
         options: {
           limit: 10000,
-          name: utils.assetsPath('media/[name].[ext]')
-        }
+          name: utils.assetsPath('media/[name].[ext]'),
+        },
       },
       {
         test: /\.(woff2?|eot|ttf|otf)(\?.*)?$/,
         loader: 'url-loader',
         options: {
-          name: utils.assetsPath('fonts/[name].[ext]')
-        }
-      }
-    ]
+          name: utils.assetsPath('fonts/[name].[ext]'),
+        },
+      },
+    ],
   },
   plugins: [
     new MpvuePlugin(),
     new MpvueEntry(),
     new webpack.DefinePlugin({
-      'mpvue': 'wx',
-      'mpvuePlatform': 'wx'
+      mpvue: 'wx',
+      mpvuePlatform: 'wx',
     }),
     new CopyWebpackPlugin([
       {
         from: path.resolve(__dirname, '../static'),
         to: path.resolve(__dirname, '../dist/static'),
-        ignore: ['.*']
-      }
+        ignore: ['.*'],
+      },
     ]),
     new CopyWebpackPlugin([
       {
         from: resolve('node_modules/vant-weapp/dist'),
         to: resolve('dist/vant-weapp/dist'),
-        ignore: ['.*']
-      }
-    ])
-  ]
-}
+        ignore: ['.*'],
+      },
+    ]),
+  ],
+};
