@@ -1,27 +1,112 @@
 <template>
   <div class="container">
-    <van-tag>标签</van-tag>
-    <van-tag type="danger">标签</van-tag>
-    <van-tag type="primary">标签</van-tag>
-    <van-tag type="success">标签</van-tag>
+    <div class="cu-bar search bg-white padding">
+      <div class="search-form round">
+        <text class="cuIcon-search"></text>
+        <input
+          :adjust-position="false"
+          type="text"
+          placeholder="输入曲谱名搜索"
+          @input="handleInputChange"
+          confirm-type="search"
+        >
+      </div>
+      <div class="action">
+        <button class="cu-btn bg-green shadow-blur round" @click="handleSearch">搜索</button>
+      </div>
+    </div>
+    <div class="nav-list" v-if="result.length==0">
+      <div
+        class="nav-li"
+        :class="'bg-'+item.color"
+        :style="[{animation: 'show ' + ((index+1)*0.2+1) + 's 1'}]"
+        v-for="(item,index) in songClasses"
+        :key="index"
+      >
+        <div class="nav-title">{{item.title}}</div>
+        <div class="nav-name">{{item.name}}</div>
+        <text :class="'cuIcon-' + item.cuIcon"></text>
+      </div>
+    </div>
+    <div v-else class="cu-list menu card-menu margin-top padding flex-center">
+      <div
+        class="cu-item solid-bottom arrow text-df"
+        v-for="score in result"
+        :key="score._id"
+        @click="navScoreDetail(score._id)"
+      >{{score.name}}</div>
+    </div>
   </div>
 </template>
 
 <script>
+import db from '@/utils';
+
 export default {
     mpType: 'page',
-    usingComponents: {
-        'van-tag': 'vant-weapp/dist/tag/index',
-    },
+
     config: {
-        navigationStyle: 'custom',
-        navigationBarBackgroundColor: '#eee',
+        navigationBarTitleText: '曲谱',
     },
     data() {
-        return {};
+        return {
+            songClasses: [
+                {
+                    title: '流行',
+                    name: 'popular',
+                    color: 'cyan',
+                    cuIcon: 'newsfill',
+                },
+                {
+                    title: '古典',
+                    name: 'classic',
+                    color: 'blue',
+                    cuIcon: 'colorlens',
+                },
+                {
+                    title: 'ACG',
+                    name: 'acg',
+                    color: 'purple',
+                    cuIcon: 'font',
+                },
+                {
+                    title: '其他 ',
+                    name: 'other',
+                    color: 'mauve',
+                    cuIcon: 'cuIcon',
+                },
+            ],
+            searchValue: '',
+            result: [],
+        };
     },
 
-    methods: {},
+    methods: {
+        async handleSearch() {
+            if (this.searchValue) {
+                const { data } = await db
+                    .collection('songscore')
+                    .where({
+                        name: db.RegExp({
+                            regexp: this.searchValue,
+                        }),
+                    })
+                    .get();
+                this.result = data;
+            } else {
+                this.result = [];
+            }
+        },
+        handleInputChange(e) {
+            this.searchValue = e.mp.detail.value;
+            this.handleSearch();
+        },
+        navScoreDetail(id) {
+            wx.navigateTo({
+                url: `/pages/scoreDetail?id=${id}`,
+            });
+        },
+    },
 
     created() {},
 };

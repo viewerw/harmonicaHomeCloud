@@ -18,6 +18,12 @@
         },
         {
             "path": "pages/article"
+        },
+        {
+            "path": "pages/uploadScore"
+        },
+        {
+            "path": "pages/scoreDetail"
         }
     ],
     "tabBar": {
