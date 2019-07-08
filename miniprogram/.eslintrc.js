@@ -45,6 +45,7 @@ module.exports = {
         'arrow-parens': ['error', 'as-needed'],
         indent: ['error', 4, { SwitchCase: 1 }],
         'no-console': 'off',
+        'no-underscore-dangle': 'off',
     },
     globals: {
         Vue: true,

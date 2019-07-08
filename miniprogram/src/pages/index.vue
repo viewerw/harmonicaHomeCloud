@@ -5,20 +5,15 @@
 <script>
 export default {
     mpType: 'page',
-    usingComponents: {
-        'van-tag': 'vant-weapp/dist/tag/index',
-    },
-    config: {
-        navigationStyle: 'custom',
-        navigationBarBackgroundColor: '#eee',
-    },
+
+    config: {},
     data() {
         return {};
     },
 
     methods: {},
 
-    created() {},
+    mounted() {},
 };
 </script>
 

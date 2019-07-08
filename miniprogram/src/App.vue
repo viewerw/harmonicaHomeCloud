@@ -1,12 +1,16 @@
 
 <script>
 import env from '@config';
+import { mapActions } from 'vuex';
 
 export default {
     globalConfig: {
         usingComponents: {
             'van-tag': 'vant-weapp/dist/tag/index',
         },
+    },
+    methods: {
+        ...mapActions(['initLogin']),
     },
     created() {
         if (!wx.cloud) {
@@ -17,6 +21,7 @@ export default {
                 env,
                 traceUser: true,
             });
+            this.initLogin();
         }
     },
     mounted() {

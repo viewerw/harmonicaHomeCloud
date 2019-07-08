@@ -24,6 +24,12 @@
         },
         {
             "path": "pages/scoreDetail"
+        },
+        {
+            "path": "pages/writePost"
+        },
+        {
+            "path": "pages/postDetail"
         }
     ],
     "tabBar": {

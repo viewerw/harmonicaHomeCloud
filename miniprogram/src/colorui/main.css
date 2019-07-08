@@ -1215,7 +1215,8 @@ button.cuIcon.lg {
 	height: 140rpx;
 	background-color: #ffffff;
 	justify-content: flex-end;
-	align-items: center
+	align-items: center;
+	
 }
 
 .cu-list.menu-avatar>.cu-item>.cu-avatar {
@@ -2246,7 +2247,17 @@ button.cuIcon.lg {
 	padding: 0 30rpx 0;
 	max-height: 6.4em;
 	overflow: hidden;
-	font-size: 30rpx;
+	font-size: 26rpx;
+	margin-bottom: 20rpx;
+	/* opacity: 0.8; */
+	color:#8799a3;
+}
+.cu-card.dynamic>.cu-item>.text-title {
+	padding: 0 30rpx 0;
+	max-height: 6.4em;
+	overflow: hidden;
+	font-size: 34rpx;
+	font-weight: 500;
 	margin-bottom: 20rpx;
 }
 
@@ -3909,4 +3920,7 @@ scroll-view.cu-steps .cu-item {
 .line-white,
 .lines-white {
 	color: #ffffff;
+}
+.text-pre{
+	white-space: pre;
 }

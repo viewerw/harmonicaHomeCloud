@@ -1,5 +1,6 @@
-// https://vuex.vuejs.org/zh-cn/intro.html
-// make sure to call Vue.use(Vuex) if using a module system
+/* eslint-disable import/no-unresolved */
+/* eslint-disable import/extensions */
+
 import Vue from 'vue';
 import Vuex from 'vuex';
 
@@ -7,16 +8,61 @@ Vue.use(Vuex);
 
 const store = new Vuex.Store({
     state: {
-        count: 0,
+        isLogin: false,
+        openid: '',
+        posts: [],
+        userInfo: {},
     },
     mutations: {
-        increment: state => {
+        setIsLogin(state, isLogin) {
             const obj = state;
-            obj.count += 1;
+            obj.isLogin = isLogin;
         },
-        decrement: state => {
+        setUserInfo(state, userInfo) {
             const obj = state;
-            obj.count -= 1;
+            obj.userInfo = userInfo;
+        },
+        setOpenid(state, openid) {
+            const obj = state;
+            obj.openid = openid;
+        },
+        setPosts(state, posts) {
+            const obj = state;
+            obj.posts = posts;
+        },
+    },
+    actions: {
+        async initLogin({ commit, state }) {
+            const openid = wx.getStorageSync('openid');
+            try {
+                if (!openid) {
+                    const res = await wx.cloud.callFunction({
+                        name: 'login',
+                        data: {},
+                    });
+                    wx.setStorageSync('openid', res.result.openid);
+                    commit('setOpenid', res.result.openid);
+                } else {
+                    commit('setOpenid', openid);
+                }
+                const db = wx.cloud.database();
+
+                const res = await db
+                    .collection('user')
+                    .where({
+                        _openid: state.openid,
+                    })
+                    .get();
+                console.log(res);
+                if (res.data.length !== 0) {
+                    wx.setStorageSync('userinfo', res.data[0].userinfo);
+                    commit('setIsLogin', true);
+                    commit('setUserInfo', res.data[0].userinfo);
+                }
+            } catch (e) {
+                commit('setIsLogin', false);
+                console.log(e);
+            }
         },
     },
 });

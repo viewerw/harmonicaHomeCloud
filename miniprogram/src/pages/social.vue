@@ -1,105 +1,160 @@
 <template>
   <div class="container">
-    <view class="cu-card dynamic no-card">
-      <view class="cu-item shadow">
-        <view class="cu-list menu-avatar">
-          <view class="cu-item">
-            <view
+    <div
+      class="cu-card dynamic no-card margin-bottom"
+      v-for="(post,index_) in posts"
+      :key="post._id"
+      @click="navPostDetail(post._id)"
+    >
+      <div class="cu-item shadow">
+        <div class="cu-list menu-avatar">
+          <div class="cu-item">
+            <div
               class="cu-avatar round lg"
-              style="background-image:url(https://ossweb-img.qq.com/images/lol/web201310/skin/big10006.jpg);"
-            ></view>
-            <view class="content flex-sub">
-              <view>凯尔</view>
-              <view class="text-gray text-sm flex justify-between">2019年12月3日</view>
-            </view>
-          </view>
-        </view>
-        <view class="text-content">折磨生出苦难，苦难又会加剧折磨，凡间这无穷的循环，将有我来终结！</view>
-        <view class="grid flex-sub padding-lr" :class="isCard?'col-3 grid-square':'col-1'">
-          <view
+              :style="{'background-image':'url('+post.userInfo.avatarUrl+')'}"
+            ></div>
+            <div class="content flex-sub">
+              <div>{{post.userInfo.nickName}}</div>
+              <div class="text-gray text-sm flex justify-between">{{post.updatedAt}}</div>
+            </div>
+          </div>
+        </div>
+        <div class="text-title">{{post.title}}</div>
+        <div class="text-content">{{post.content}}</div>
+        <div
+          class="grid flex-sub padding-lr"
+          :class="post.imgs.length>1?'col-'+post.imgs.length+' grid-square':'col-1'"
+        >
+          <div
             class="bg-img"
-            :class="isCard?'':'only-img'"
+            :class="{'only-img':post.imgs.length<2}"
             style="background-image:url(https://ossweb-img.qq.com/images/lol/web201310/skin/big10006.jpg);"
-            v-for="(item,index) in isCard?9:1"
+            v-for="(item,index) in post.imgs"
             :key="index"
-          ></view>
-        </view>
-        <view class="text-gray text-sm text-right padding">
-          <text class="cuIcon-attentionfill margin-lr-xs"></text>10
-          <text class="cuIcon-appreciatefill margin-lr-xs"></text>20
-          <text class="cuIcon-messagefill margin-lr-xs"></text>30
-        </view>
-
-        <view class="cu-list menu-avatar comment solids-top">
-          <view class="cu-item">
-            <view
-              class="cu-avatar round"
-              style="background-image:url(https://ossweb-img.qq.com/images/lol/img/champion/Morgana.png);"
-            ></view>
-            <view class="content">
-              <view class="text-grey">莫甘娜</view>
-              <view class="text-gray text-content text-df">凯尔，你被自己的光芒变的盲目。</view>
-              <view class="bg-grey padding-sm radius margin-top-sm text-sm">
-                <view class="flex">
-                  <view>凯尔：</view>
-                  <view class="flex-sub">妹妹，你在帮他们给黑暗找借口吗?</view>
-                </view>
-              </view>
-              <view class="margin-top-sm flex justify-between">
-                <view class="text-gray text-df">2018年12月4日</view>
-                <view>
-                  <text class="cuIcon-appreciatefill text-red"></text>
-                  <text class="cuIcon-messagefill text-gray margin-left-sm"></text>
-                </view>
-              </view>
-            </view>
-          </view>
-
-          <view class="cu-item">
-            <view
-              class="cu-avatar round"
-              style="background-image:url(https://ossweb-img.qq.com/images/lol/web201310/skin/big10006.jpg);"
-            ></view>
-            <view class="content">
-              <view class="text-grey">凯尔</view>
-              <view class="text-gray text-content text-df">妹妹，如果不是为了飞翔，我们要这翅膀有什么用?</view>
-              <view class="bg-grey padding-sm radius margin-top-sm text-sm">
-                <view class="flex">
-                  <view>莫甘娜：</view>
-                  <view class="flex-sub">如果不能立足于大地，要这双脚又有何用?</view>
-                </view>
-              </view>
-              <view class="margin-top-sm flex justify-between">
-                <view class="text-gray text-df">2018年12月4日</view>
-                <view>
-                  <text class="cuIcon-appreciate text-gray"></text>
-                  <text class="cuIcon-messagefill text-gray margin-left-sm"></text>
-                </view>
-              </view>
-            </view>
-          </view>
-        </view>
-      </view>
-    </view>
+          ></div>
+        </div>
+        <div class="text-gray text-sm text-right padding">
+          <text class="cuIcon-attentionfill margin-lr-xs"></text>
+          {{post.viewCount}}
+          <text class="cuIcon-appreciatefill margin-lr-xs"></text>
+          {{post.likeCount}}
+          <text class="cuIcon-messagefill margin-lr-xs"></text>
+          {{post.commentCount}}
+        </div>
+      </div>
+    </div>
+    <div class="write-wrp">
+      <navigator v-if="isLogin" class="write-btn" url="/pages/writePost">
+        <img src="/static/img/write-btn.svg" />
+      </navigator>
+      <button v-else open-type="getUserInfo" @getuserinfo="handleUserInfo" class="write-btn">
+        <img src="/static/img/write-btn.svg" />
+      </button>
+    </div>
   </div>
 </template>
 
 <script>
+import { mapState, mapMutations } from 'vuex';
+import db from '@/utils';
+import dayjs from 'dayjs';
+
 export default {
     mpType: 'page',
 
-    config: {},
+    config: {
+        navigationBarTitleText: '社区',
+    },
     data() {
         return {};
     },
+    computed: {
+        ...mapState(['isLogin', 'posts']),
+    },
 
-    methods: {},
+    methods: {
+        ...mapMutations(['setIsLogin', 'setPosts']),
+        handleUserInfo(e) {
+            console.log(e);
+            if (/fail/.test(e.mp.detail.errMsg)) {
+                wx.showToast({
+                    icon: 'none',
+                    title: '不授权无法发布帖子哦~',
+                });
+                return;
+            }
+            wx.setStorageSync('userinfo', e.mp.detail.userInfo);
 
-    created() {},
+            db.collection('user').add({
+                data: {
+                    userinfo: e.mp.detail.userInfo,
+                },
+                success: () => {
+                    this.setIsLogin(true);
+                    wx.navigateTo({
+                        url: '/pages/writePost',
+                    });
+                },
+                fail: err => {
+                    console.log('err', err);
+                },
+            });
+        },
+        async fetchPosts() {
+            try {
+                const {
+                    result: { posts },
+                } = await wx.cloud.callFunction({
+                    name: 'getPosts',
+                    // eslint-disable-next-line
+                    data: { ipp: 10, page: 1 },
+                });
+                // eslint-disable-next-line
+                posts.map(post => {
+                    // eslint-disable-next-line
+                    post.updatedAt = dayjs(post.updatedAt).format('M-D H:m');
+                    // eslint-disable-next-line
+                    post.createdAt = dayjs(post.createdAt).format('M-D H:m');
+                });
+                this.setPosts(posts);
+            } catch (e) {
+                console.log(e);
+            }
+        },
+        navPostDetail(id) {
+            wx.navigateTo({
+                url: `/pages/postDetail?id=${id}`,
+            });
+        },
+    },
+    async onShow() {
+        this.fetchPosts();
+    },
+    mounted() {},
 };
 </script>
 
 <style lang="less" scoped>
 .container {
+    background: #f5f5f5;
+    .write-wrp {
+        position: fixed;
+        width: 50px;
+        height: 50px;
+        bottom: 30px;
+        right: 15px;
+        .write-btn {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background-color: #0081ff;
+            padding: 0 14px;
+
+            img {
+                width: 100%;
+                height: 100%;
+            }
+        }
+    }
 }
 </style>
