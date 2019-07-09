@@ -23,15 +23,11 @@
         <div class="text-content">{{post.content}}</div>
         <div
           class="grid flex-sub padding-lr"
-          :class="post.imgs.length>1?'col-'+post.imgs.length+' grid-square':'col-1'"
+          :class="post.imgs.length>1?'col-'+post.imgs.length+' grid-square':'grid-square col-2'"
         >
-          <div
-            class="bg-img"
-            :class="{'only-img':post.imgs.length<2}"
-            style="background-image:url(https://ossweb-img.qq.com/images/lol/web201310/skin/big10006.jpg);"
-            v-for="(item,index) in post.imgs"
-            :key="index"
-          ></div>
+          <div class="bg-img img-wrp" v-for="(item,index) in post.imgs" :key="index">
+            <img class="post-img" mode="aspectFill" :src="item" />
+          </div>
         </div>
         <div class="text-gray text-sm text-right padding">
           <text class="cuIcon-attentionfill margin-lr-xs"></text>
@@ -64,9 +60,15 @@ export default {
 
     config: {
         navigationBarTitleText: '社区',
+        enablePullDownRefresh: true,
+        onReachBottomDistance: 150,
     },
     data() {
-        return {};
+        return {
+            isNoMore: false,
+            ipp: 20,
+            page: 1,
+        };
     },
     computed: {
         ...mapState(['isLogin', 'posts']),
@@ -107,14 +109,14 @@ export default {
                 } = await wx.cloud.callFunction({
                     name: 'getPosts',
                     // eslint-disable-next-line
-                    data: { ipp: 10, page: 1 },
+                    data: { ipp: this.ipp, page: 1 },
                 });
                 // eslint-disable-next-line
                 posts.map(post => {
                     // eslint-disable-next-line
-                    post.updatedAt = dayjs(post.updatedAt).format('M-D H:m');
+                    post.updatedAt = dayjs(post.updatedAt).format('M-D H:mm');
                     // eslint-disable-next-line
-                    post.createdAt = dayjs(post.createdAt).format('M-D H:m');
+                    post.createdAt = dayjs(post.createdAt).format('M-D H:mm');
                 });
                 this.setPosts(posts);
             } catch (e) {
@@ -127,10 +129,40 @@ export default {
             });
         },
     },
-    async onShow() {
+    async onPullDownRefresh() {
+        await this.fetchPosts();
+        wx.stopPullDownRefresh();
+    },
+
+    mounted() {
         this.fetchPosts();
     },
-    mounted() {},
+    async onReachBottom() {
+        if (this.isNoMore) return;
+        this.page = this.page + 1;
+        const { ipp, page } = this;
+        try {
+            const {
+                result: { posts },
+            } = await wx.cloud.callFunction({
+                name: 'getPosts',
+                data: { ipp, page },
+            });
+            if (posts.length < ipp) {
+                this.isNoMore = true;
+            }
+            // eslint-disable-next-line
+            posts.map(post => {
+                // eslint-disable-next-line
+                post.updatedAt = dayjs(post.updatedAt).format('M-D H:m');
+                // eslint-disable-next-line
+                post.createdAt = dayjs(post.createdAt).format('M-D H:m');
+            });
+            this.setPosts([...this.posts, ...posts]);
+        } catch (e) {
+            console.log(e);
+        }
+    },
 };
 </script>
 
@@ -155,6 +187,16 @@ export default {
                 height: 100%;
             }
         }
+    }
+    .text-content {
+        white-space: pre-line;
+    }
+    .img-wrp {
+        border-radius: 3px;
+    }
+    .post-img {
+        width: 100%;
+        height: 100%;
     }
 }
 </style>

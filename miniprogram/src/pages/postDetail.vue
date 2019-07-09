@@ -61,7 +61,12 @@
             class="bg-grey padding-sm radius margin-top-sm text-sm"
             v-if="comment.replys&&comment.replys.length>0"
           >
-            <div class="flex" v-for="reply in comment.replys" :key="reply._id">
+            <div
+              class="flex"
+              v-for="reply in comment.replys"
+              :key="reply._id"
+              @click.stop="replyReply(comment._id,reply._id,reply.nickName)"
+            >
               <div>{{reply.nickName}}：</div>
               <div class="flex-sub">{{reply.content}}</div>
             </div>
@@ -69,7 +74,10 @@
           <div class="margin-top-sm flex justify-between">
             <div class="text-gray text-df">{{comment.createdAt}}</div>
             <div style="padding:10rpx 20rpx;" @click.stop="handleLikeComment(comment._id)">
-              <text class="cuIcon-appreciatefill text-grey"></text>
+              <text
+                class="cuIcon-appreciatefill"
+                :class="{'comment-liked':comment.isLike,'text-grey':!comment.isLike}"
+              ></text>
             </div>
           </div>
         </div>
@@ -127,7 +135,10 @@ import db, { _ } from '@/utils';
 export default {
     mpType: 'page',
 
-    config: {},
+    config: {
+        enablePullDownRefresh: true,
+        onReachBottomDistance: 150,
+    },
     data() {
         return {
             post: { userInfo: {}, imgs: [] },
@@ -142,6 +153,10 @@ export default {
             comments: [],
             inputPlacehodler: '回复楼主',
             currentReplyCommentId: '',
+            currentReplyReplyId: '',
+            ipp: 10,
+            page: 1,
+            isNoMore: false,
         };
     },
     computed: {
@@ -164,6 +179,7 @@ export default {
                 });
                 return;
             }
+
             try {
                 wx.showLoading({
                     title: '发送中...',
@@ -179,9 +195,10 @@ export default {
                 if (this.replyType === 'post') {
                     params.replyPostId = this.post._id;
 
-                    await db.collection('comment').add({
+                    const { _id } = await db.collection('comment').add({
                         data: params,
                     });
+                    params._id = _id;
                 } else if (this.replyType === 'comment') {
                     params.replyCommmentId = this.currentReplyCommentId;
                     params.content = `${this.inputPlacehodler}: ${params.content}`;
@@ -196,6 +213,7 @@ export default {
                                 replyIds: _.push([_id]),
                             },
                         });
+                    params._id = _id;
                     // todo:notify
                 } else if (this.replyType === 'reply') {
                     params.replyCommmentId = this.currentReplyCommentId;
@@ -212,6 +230,7 @@ export default {
                                 replyIds: _.push([_id]),
                             },
                         });
+                    params._id = _id;
                     // todo :notify
                 }
 
@@ -221,7 +240,7 @@ export default {
                     icon: 'none',
                     title: '评论成功！',
                 });
-                this.refreshComments();
+                this.refreshComments(params, 'add');
             } catch (err) {
                 console.log(err);
             } finally {
@@ -256,45 +275,119 @@ export default {
                     },
                 });
                 this.setIsLogin(true);
-                await db.collection('comment').add({
-                    data: {
-                        nickName: this.userInfo.nickName,
-                        avatarUrl: this.userInfo.avatarUrl,
-                        createdAt: new Date(),
-                        content: this.input.trim(),
-                        replyPostId: this.post._id,
-                        likeCount: 0,
-                    },
-                });
+                const params = {
+                    nickName: this.userInfo.nickName,
+                    avatarUrl: this.userInfo.avatarUrl,
+                    createdAt: new Date(),
+                    content: e.mp.detail.value.input.trim(),
+                    likeCount: 0,
+                };
+                if (this.replyType === 'post') {
+                    params.replyPostId = this.post._id;
+
+                    const { _id } = await db.collection('comment').add({
+                        data: params,
+                    });
+                    params._id = _id;
+                } else if (this.replyType === 'comment') {
+                    params.replyCommmentId = this.currentReplyCommentId;
+                    params.content = `${this.inputPlacehodler}: ${params.content}`;
+                    const { _id } = await db.collection('reply').add({
+                        data: params,
+                    });
+                    db
+                        .collection('comment')
+                        .doc(this.currentReplyCommentId)
+                        .update({
+                            data: {
+                                replyIds: _.push([_id]),
+                            },
+                        });
+                    params._id = _id;
+                    // todo:notify
+                } else if (this.replyType === 'reply') {
+                    params.replyCommmentId = this.currentReplyCommentId;
+                    params.replyReplyId = this.currentReplyReplyId;
+                    params.content = `${this.inputPlacehodler} ${params.content}`;
+                    const { _id } = await db.collection('reply').add({
+                        data: params,
+                    });
+                    db
+                        .collection('comment')
+                        .doc(this.currentReplyCommentId)
+                        .update({
+                            data: {
+                                replyIds: _.push([_id]),
+                            },
+                        });
+                    params._id = _id;
+                    // todo :notify
+                }
+
                 this.input = '';
                 wx.hideLoading();
                 wx.showToast({
                     icon: 'none',
                     title: '评论成功！',
                 });
-                this.refreshComments();
+                this.refreshComments(params, 'add');
             } catch (err) {
                 console.log(err);
             } finally {
                 wx.hideLoading();
             }
         },
-        async refreshComments() {
+        async fetchComments() {
             try {
                 const {
                     result: { comments },
                 } = await wx.cloud.callFunction({
                     name: 'getComments',
-                    data: { ipp: 10, page: 1, postId: this.post._id },
+                    data: { ipp: this.ipp, page: 1, postId: this.post._id },
                 });
                 // eslint-disable-next-line
                 comments.map(comment => {
                     // eslint-disable-next-line
-                    comment.createdAt = dayjs(comment.createdAt).format('M-D H:m');
+                    comment.createdAt = dayjs(comment.createdAt).format('M-D H:mm');
                 });
                 this.comments = comments;
+                if (comments.length < this.ipp) {
+                    this.isNoMore = true;
+                }
             } catch (e) {
                 console.log(e);
+            }
+        },
+        refreshComments(replyData, refreshType) {
+            // eslint-disable-next-line
+            replyData.createdAt = dayjs(replyData.createdAt).format('M-D H:mm');
+            if (this.replyType === 'post' && this.isNoMore) {
+                this.comments.push(replyData);
+            } else {
+                // eslint-disable-next-line
+                const replyComment = this.comments.find(
+                    comment => comment._id === this.currentReplyCommentId,
+                    // eslint-disable-next-line
+                );
+
+                if (replyComment.replys) {
+                    replyComment.replys.push(replyData);
+                } else {
+                    this.$set(replyComment, 'replys', [replyData]);
+                }
+            }
+            if (refreshType === 'add') {
+                this.post.commentCount += 1;
+                db
+                    .collection('post')
+                    .doc(this.post._id)
+                    .update({ data: { commentCount: _.inc(1) } });
+            } else if (refreshType === 'del') {
+                this.post.commentCount -= 1;
+                db
+                    .collection('post')
+                    .doc(this.post._id)
+                    .update({ data: { commentCount: _.inc(-1) } });
             }
         },
         async fetchIsLikePost() {
@@ -321,7 +414,7 @@ export default {
                     .doc(this.post._id)
                     .update({
                         data: {
-                            likeCount: this.post.likeCount,
+                            likeCount: _.inc(1),
                         },
                     });
                 db.collection('like').add({
@@ -337,7 +430,7 @@ export default {
                     .doc(this.post._id)
                     .update({
                         data: {
-                            likeCount: this.post.likeCount,
+                            likeCount: _.inc(-1),
                         },
                     });
                 const { data } = await db
@@ -345,6 +438,50 @@ export default {
                     .where({
                         _openid: this.openid,
                         likePostId: this.post._id,
+                    })
+                    .get();
+                db
+                    .collection('like')
+                    .doc(data[0]._id)
+                    .remove();
+            }
+        },
+        async handleLikeComment(commentId) {
+            console.log(commentId);
+            const comment = this.comments.find(item => item._id === commentId);
+
+            comment.isLike = !comment.isLike;
+            if (comment.isLike) {
+                comment.likeCount += 1;
+                db
+                    .collection('comment')
+                    .doc(comment._id)
+                    .update({
+                        data: {
+                            likeCount: _.inc(1),
+                        },
+                    });
+                db.collection('like').add({
+                    data: {
+                        likeCommentId: comment._id,
+                        isLike: true,
+                    },
+                });
+            } else {
+                comment.likeCount -= 1;
+                db
+                    .collection('comment')
+                    .doc(comment._id)
+                    .update({
+                        data: {
+                            likeCount: _.inc(-1),
+                        },
+                    });
+                const { data } = await db
+                    .collection('like')
+                    .where({
+                        _openid: this.openid,
+                        likeCommentId: comment._id,
                     })
                     .get();
                 db
@@ -361,9 +498,15 @@ export default {
             console.log('reply comment focus');
             this.replyType = 'comment';
         },
-        handleLikeComment(commentId) {
-            console.log(commentId);
+        replyReply(commentId, replyId, nickName) {
+            this.currentReplyCommentId = commentId;
+            this.currentReplyReplyId = replyId;
+            this.inputPlacehodler = `回复${nickName}`;
+            this.inputFocus = true;
+            console.log('reply reply focus');
+            this.replyType = 'reply';
         },
+
         handleInputBlur() {
             this.inputPlacehodler = '回复楼主';
             this.inputFocus = false;
@@ -380,13 +523,42 @@ export default {
 
     mounted() {
         const { id } = this.$root.$mp.query;
+        db
+            .collection('post')
+            .doc(id)
+            .update({ data: { viewCount: _.inc(1) } });
         this.post = { ...this.posts.find(post => post._id === id), isLike: false };
         this.fetchIsLikePost();
-        this.refreshComments();
+        this.fetchComments();
         console.log('post', this.post);
     },
     onUnload() {
         Object.assign(this.$data, this.$options.data());
+    },
+    async onReachBottom() {
+        if (this.isNoMore) return;
+        console.log('bottom');
+        this.page = this.page + 1;
+        const { ipp, page } = this;
+        try {
+            const {
+                result: { comments },
+            } = await wx.cloud.callFunction({
+                name: 'getComments',
+                data: { ipp, page, postId: this.post._id },
+            });
+            if (comments.length < ipp) {
+                this.isNoMore = true;
+            }
+            // eslint-disable-next-line
+            comments.map(comment => {
+                // eslint-disable-next-line
+                comment.createdAt = dayjs(comment.createdAt).format('M-D H:mm');
+            });
+            this.comments = [...this.comments, ...comments];
+        } catch (e) {
+            console.log(e);
+        }
     },
 };
 </script>
@@ -422,6 +594,9 @@ export default {
         color: #e54d42;
         border: 1px solid #e54d42;
     }
+}
+.comment-liked {
+    color: #e54d42;
 }
 .share {
     margin: 0;
@@ -474,6 +649,9 @@ export default {
             height: 100%;
         }
     }
+}
+.text-content {
+    white-space: pre-line;
 }
 button::after {
     border: none;

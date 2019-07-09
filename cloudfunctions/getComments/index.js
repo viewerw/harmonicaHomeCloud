@@ -22,6 +22,18 @@ exports.main = async (event, context) => {
         comments.map(
             comment =>
                 new Promise(async (resolve, reject) => {
+                    const { data: likes } = await db
+                        .collection('like')
+                        .where({
+                            _openid: wxContext.OPENID,
+                            likeCommentId: comment._id,
+                        })
+                        .get();
+                    if (likes.length > 0) {
+                        comment.isLike = true;
+                    } else {
+                        comment.isLike = false;
+                    }
                     if (comment.replyIds && comment.replyIds.length > 0) {
                         try {
                             const { data: replys } = await db
@@ -29,6 +41,7 @@ exports.main = async (event, context) => {
                                 .where({
                                     _id: _.in(comment.replyIds),
                                 })
+                                .orderBy('createdAt', 'asc')
                                 .get();
                             comment.replys = replys;
                             resolve();
