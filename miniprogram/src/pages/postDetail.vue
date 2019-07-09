@@ -200,7 +200,7 @@ export default {
                     });
                     params._id = _id;
                 } else if (this.replyType === 'comment') {
-                    params.replyCommmentId = this.currentReplyCommentId;
+                    params.replyCommentId = this.currentReplyCommentId;
                     params.content = `${this.inputPlacehodler}: ${params.content}`;
                     const { _id } = await db.collection('reply').add({
                         data: params,
@@ -216,7 +216,7 @@ export default {
                     params._id = _id;
                     // todo:notify
                 } else if (this.replyType === 'reply') {
-                    params.replyCommmentId = this.currentReplyCommentId;
+                    params.replyCommentId = this.currentReplyCommentId;
                     params.replyReplyId = this.currentReplyReplyId;
                     params.content = `${this.inputPlacehodler} ${params.content}`;
                     const { _id } = await db.collection('reply').add({
@@ -290,7 +290,7 @@ export default {
                     });
                     params._id = _id;
                 } else if (this.replyType === 'comment') {
-                    params.replyCommmentId = this.currentReplyCommentId;
+                    params.replyCommentId = this.currentReplyCommentId;
                     params.content = `${this.inputPlacehodler}: ${params.content}`;
                     const { _id } = await db.collection('reply').add({
                         data: params,
@@ -306,7 +306,7 @@ export default {
                     params._id = _id;
                     // todo:notify
                 } else if (this.replyType === 'reply') {
-                    params.replyCommmentId = this.currentReplyCommentId;
+                    params.replyCommentId = this.currentReplyCommentId;
                     params.replyReplyId = this.currentReplyReplyId;
                     params.content = `${this.inputPlacehodler} ${params.content}`;
                     const { _id } = await db.collection('reply').add({
