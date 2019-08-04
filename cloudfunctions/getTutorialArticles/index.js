@@ -19,8 +19,8 @@ exports.main = async (event, context) => {
         data.articles.map(articleId =>
             db
                 .collection('article')
-                .field({ _id: true, title: true })
                 .where({ _id: articleId })
+                .field({ _id: true, title: true })
                 .get()
                 .then(({ data }) => data[0]),
         ),

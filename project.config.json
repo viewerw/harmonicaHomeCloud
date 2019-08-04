@@ -12,7 +12,7 @@
 	},
 	"appid": "wxcb501e99f8d358e4",
 	"projectname": "harmonicahome",
-	"libVersion": "2.7.3",
+	"libVersion": "2.8.0",
 	"simulatorType": "wechat",
 	"simulatorPluginLibVersion": {},
 	"cloudfunctionTemplateRoot": "cloudfunctionTemplate",
