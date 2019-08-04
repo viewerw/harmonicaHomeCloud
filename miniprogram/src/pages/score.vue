@@ -9,7 +9,7 @@
           placeholder="输入曲谱名搜索"
           @input="handleInputChange"
           confirm-type="search"
-        >
+        />
       </div>
       <div class="action">
         <button class="cu-btn bg-green shadow-blur round" @click="handleSearch">搜索</button>
@@ -22,11 +22,13 @@
         :style="[{animation: 'show ' + ((index+1)*0.2+1) + 's 1'}]"
         v-for="(item,index) in songClasses"
         :key="index"
+        @click="handleSongClassSearch(item.title)"
       >
         <div class="nav-title">{{item.title}}</div>
         <div class="nav-name">{{item.name}}</div>
         <text :class="'cuIcon-' + item.cuIcon"></text>
       </div>
+      <navigator url="/pages/uploadScore" type="navigate" class="upload text-blue">上传谱子</navigator>
     </div>
     <div v-else class="cu-list menu card-menu margin-top padding flex-center">
       <div
@@ -106,11 +108,25 @@ export default {
                 url: `/pages/scoreDetail?id=${id}`,
             });
         },
+        async handleSongClassSearch(songClass) {
+            const { data } = await db
+                .collection('songscore')
+                .where({
+                    songClass,
+                })
+                .get();
+            this.result = data;
+        },
     },
 
     created() {},
 };
 </script>
 
-<style scoped>
+<style lang="less" scoped>
+.upload {
+    width: 100%;
+    font-size: 14px;
+    text-align: center;
+}
 </style>

@@ -3,8 +3,10 @@
 
 import Vue from 'vue';
 import Vuex from 'vuex';
+import pkg from '../../package.json';
 
 Vue.use(Vuex);
+const db = wx.cloud.database();
 
 const store = new Vuex.Store({
     state: {
@@ -12,6 +14,9 @@ const store = new Vuex.Store({
         openid: '',
         posts: [],
         userInfo: {},
+        hasNewMessage: '',
+        nextPage: '',
+        isReview: true,
     },
     mutations: {
         setIsLogin(state, isLogin) {
@@ -26,9 +31,21 @@ const store = new Vuex.Store({
             const obj = state;
             obj.openid = openid;
         },
+        setHasNewMessage(state, hasNewMessage) {
+            const obj = state;
+            obj.hasNewMessage = hasNewMessage;
+        },
         setPosts(state, posts) {
             const obj = state;
             obj.posts = posts;
+        },
+        setNextPage(state, url) {
+            const obj = state;
+            obj.nextPage = url;
+        },
+        setIsReview(state, isReview) {
+            const obj = state;
+            obj.isReview = isReview;
         },
     },
     actions: {
@@ -42,10 +59,10 @@ const store = new Vuex.Store({
                     });
                     wx.setStorageSync('openid', res.result.openid);
                     commit('setOpenid', res.result.openid);
+                    commit('setHasNewMessage', res.result.hasNewMessage);
                 } else {
                     commit('setOpenid', openid);
                 }
-                const db = wx.cloud.database();
 
                 const res = await db
                     .collection('user')
@@ -63,6 +80,13 @@ const store = new Vuex.Store({
                 commit('setIsLogin', false);
                 console.log(e);
             }
+        },
+        async initReview({ commit }) {
+            const { data } = await db
+                .collection('review')
+                .doc('d119ef8d-95f9-4938-a31c-582a716ba59a')
+                .get();
+            commit('setIsReview', pkg.version === data.version && data.isreview);
         },
     },
 });

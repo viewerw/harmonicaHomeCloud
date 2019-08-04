@@ -33,7 +33,8 @@
           :key="index"
           :src="img"
           mode="widthFix"
-        >
+          @click="previewImage(img,scoreDetail.imgs)"
+        />
       </div>
       <view class="cu-bar bg-white solid-bottom" v-if="scoreDetail.text">
         <view class="action">
@@ -73,7 +74,14 @@ export default {
         };
     },
 
-    methods: {},
+    methods: {
+        previewImage(img, imgs) {
+            wx.previewImage({
+                urls: imgs,
+                current: img,
+            });
+        },
+    },
 
     async mounted() {
         const { id } = this.$root.$mp.query;

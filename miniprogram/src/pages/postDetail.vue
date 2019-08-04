@@ -24,6 +24,7 @@
             mode="widthFix"
             :src="img"
             :key="img"
+            @click="previewImage(img)"
           />
         </div>
         <div class="text-gray text-sm text-right padding flex tools">
@@ -42,6 +43,10 @@
             <text class="cuIcon-forwardfill circle margin-lr-xs"></text>
             <text>转发</text>
           </button>
+          <div class="text-grey" v-if="userInfo.isAdmin" @click="deletePost">
+            <text class="cuIcon-deletefill circle margin-lr-xs"></text>
+            <text>删除</text>
+          </div>
         </div>
       </div>
     </div>
@@ -51,7 +56,7 @@
         class="cu-item"
         v-for="(comment,_index) in comments"
         :key="comment._id"
-        @click="replyComment(comment._id,comment.nickName)"
+        @click="replyComment(comment)"
       >
         <div class="cu-avatar round" :style="{'background-image':'url('+comment.avatarUrl+')'}"></div>
         <div class="content">
@@ -65,7 +70,7 @@
               class="flex"
               v-for="reply in comment.replys"
               :key="reply._id"
-              @click.stop="replyReply(comment._id,reply._id,reply.nickName)"
+              @click.stop="replyReply(comment._id,reply)"
             >
               <div>{{reply.nickName}}：</div>
               <div class="flex-sub">{{reply.content}}</div>
@@ -74,6 +79,7 @@
           <div class="margin-top-sm flex justify-between">
             <div class="text-gray text-df">{{comment.createdAt}}</div>
             <div style="padding:10rpx 20rpx;" @click.stop="handleLikeComment(comment._id)">
+              <text class="text-grey text-sm">{{comment.likeCount}}</text>
               <text
                 class="cuIcon-appreciatefill"
                 :class="{'comment-liked':comment.isLike,'text-grey':!comment.isLike}"
@@ -130,18 +136,19 @@
 <script>
 import { mapState, mapMutations } from 'vuex';
 import dayjs from 'dayjs';
-import db, { _ } from '@/utils';
+import db, { _, showLoading, hideLoading } from '@/utils';
 
 export default {
     mpType: 'page',
 
     config: {
+        navigationBarTitleText: '主题帖',
         enablePullDownRefresh: true,
         onReachBottomDistance: 150,
     },
     data() {
         return {
-            post: { userInfo: {}, imgs: [] },
+            post: { userInfo: { avatarUrl: '' }, imgs: [] },
             textAreaPaddingBottom: 10,
             sendMarginBottom: 8,
             inputHeight: 32,
@@ -153,7 +160,9 @@ export default {
             comments: [],
             inputPlacehodler: '回复楼主',
             currentReplyCommentId: '',
+            currentReplyComment: {},
             currentReplyReplyId: '',
+            currentReplyReply: {},
             ipp: 10,
             page: 1,
             isNoMore: false,
@@ -171,6 +180,30 @@ export default {
         handleInputChange(e) {
             this.input = e.mp.detail.value;
         },
+        previewImage(img) {
+            wx.previewImage({
+                urls: this.post.imgs,
+                current: img,
+            });
+        },
+        deletePost() {
+            wx.showModal({
+                title: '提示',
+                content: '确认删除吗？',
+                success: async () => {
+                    showLoading();
+                    try {
+                        await db
+                            .collection('post')
+                            .doc(this.post._id)
+                            .remove();
+                        wx.navigateBack();
+                    } finally {
+                        hideLoading();
+                    }
+                },
+            });
+        },
         async sendComment(e) {
             if (e.mp.detail.value.input.trim() === '') {
                 wx.showModal({
@@ -179,73 +212,7 @@ export default {
                 });
                 return;
             }
-
-            try {
-                wx.showLoading({
-                    title: '发送中...',
-                    mask: true,
-                });
-                const params = {
-                    nickName: this.userInfo.nickName,
-                    avatarUrl: this.userInfo.avatarUrl,
-                    createdAt: new Date(),
-                    content: e.mp.detail.value.input.trim(),
-                    likeCount: 0,
-                };
-                if (this.replyType === 'post') {
-                    params.replyPostId = this.post._id;
-
-                    const { _id } = await db.collection('comment').add({
-                        data: params,
-                    });
-                    params._id = _id;
-                } else if (this.replyType === 'comment') {
-                    params.replyCommentId = this.currentReplyCommentId;
-                    params.content = `${this.inputPlacehodler}: ${params.content}`;
-                    const { _id } = await db.collection('reply').add({
-                        data: params,
-                    });
-                    db
-                        .collection('comment')
-                        .doc(this.currentReplyCommentId)
-                        .update({
-                            data: {
-                                replyIds: _.push([_id]),
-                            },
-                        });
-                    params._id = _id;
-                    // todo:notify
-                } else if (this.replyType === 'reply') {
-                    params.replyCommentId = this.currentReplyCommentId;
-                    params.replyReplyId = this.currentReplyReplyId;
-                    params.content = `${this.inputPlacehodler} ${params.content}`;
-                    const { _id } = await db.collection('reply').add({
-                        data: params,
-                    });
-                    db
-                        .collection('comment')
-                        .doc(this.currentReplyCommentId)
-                        .update({
-                            data: {
-                                replyIds: _.push([_id]),
-                            },
-                        });
-                    params._id = _id;
-                    // todo :notify
-                }
-
-                this.input = '';
-                wx.hideLoading();
-                wx.showToast({
-                    icon: 'none',
-                    title: '评论成功！',
-                });
-                this.refreshComments(params, 'add');
-            } catch (err) {
-                console.log(err);
-            } finally {
-                wx.hideLoading();
-            }
+            this._sendComment();
         },
         async handleLogin(e) {
             if (/fail/.test(e.mp.detail.errMsg)) {
@@ -255,43 +222,64 @@ export default {
                 });
                 return;
             }
-            if (this.input.trim() === '') {
-                wx.showModal({
-                    title: '提示',
-                    content: '评论的内容不能为空哦',
-                });
-                return;
-            }
+
             wx.setStorageSync('userinfo', e.mp.detail.userInfo);
             this.setUserInfo(e.mp.detail.userInfo);
+            try {
+                await db.collection('user').add({
+                    data: {
+                        hasNewMessage: '', // 空、post ,comment,like
+                        userinfo: e.mp.detail.userInfo,
+                    },
+                });
+                this.setIsLogin(true);
+                this._sendComment();
+            } catch (err) {
+                console.log(err);
+            }
+        },
+        async _sendComment() {
             try {
                 wx.showLoading({
                     title: '发送中...',
                     mask: true,
                 });
-                await db.collection('user').add({
-                    data: {
-                        userinfo: e.mp.detail.userInfo,
-                    },
-                });
-                this.setIsLogin(true);
                 const params = {
                     nickName: this.userInfo.nickName,
                     avatarUrl: this.userInfo.avatarUrl,
                     createdAt: new Date(),
-                    content: e.mp.detail.value.input.trim(),
+                    content: this.inputCache.trim(),
                     likeCount: 0,
                 };
                 if (this.replyType === 'post') {
                     params.replyPostId = this.post._id;
-
+                    params.replyUserOpenid = this.post._openid;
                     const { _id } = await db.collection('comment').add({
                         data: params,
                     });
                     params._id = _id;
+                    params._openid = this.openid;
+
+                    // db
+                    //     .collection('user')
+                    //     .doc(this.post._openid)
+                    //     .update({
+                    //         hasNewMessage: 'post',
+                    //     });
+                    wx.cloud.callFunction({
+                        name: 'openapi',
+                        data: {
+                            openid: this.post._openid,
+                            action: 'sendTemplateMessage',
+                            content: params.content,
+                            username: params.nickName,
+                            messageType: 'post',
+                        },
+                    });
                 } else if (this.replyType === 'comment') {
                     params.replyCommentId = this.currentReplyCommentId;
-                    params.content = `${this.inputPlacehodler}: ${params.content}`;
+                    params.content = `${this.inputPlacehodler}：${params.content}`;
+                    params.replyUserOpenid = this.currentReplyComment._openid;
                     const { _id } = await db.collection('reply').add({
                         data: params,
                     });
@@ -304,11 +292,30 @@ export default {
                             },
                         });
                     params._id = _id;
-                    // todo:notify
+                    params._openid = this.openid;
+
+                    // notify
+                    // db
+                    //     .collection('user')
+                    //     .doc(this.currentReplyComment._openid)
+                    //     .update({
+                    //         hasNewMessage: 'comment',
+                    //     });
+                    wx.cloud.callFunction({
+                        name: 'openapi',
+                        data: {
+                            openid: this.currentReplyComment._openid,
+                            action: 'sendTemplateMessage',
+                            content: params.content.split('：')[1],
+                            username: params.nickName,
+                            messageType: 'comment',
+                        },
+                    });
                 } else if (this.replyType === 'reply') {
                     params.replyCommentId = this.currentReplyCommentId;
+                    params.replyUserOpenid = this.currentReplyReply._openid;
                     params.replyReplyId = this.currentReplyReplyId;
-                    params.content = `${this.inputPlacehodler} ${params.content}`;
+                    params.content = `${this.inputPlacehodler}：${params.content}`;
                     const { _id } = await db.collection('reply').add({
                         data: params,
                     });
@@ -321,11 +328,28 @@ export default {
                             },
                         });
                     params._id = _id;
+                    params._openid = this._openid;
                     // todo :notify
+                    // db
+                    //     .collection('user')
+                    //     .doc(this.currentReplyReply._openid)
+                    //     .update({
+                    //         hasNewMessage: 'comment',
+                    //     });
+                    wx.cloud.callFunction({
+                        name: 'openapi',
+                        data: {
+                            openid: this.currentReplyReply._openid,
+                            action: 'sendTemplateMessage',
+                            content: params.content.split('：')[1],
+                            username: params.nickName,
+                            messageType: 'comment',
+                        },
+                    });
                 }
 
                 this.input = '';
-                wx.hideLoading();
+
                 wx.showToast({
                     icon: 'none',
                     title: '评论成功！',
@@ -363,7 +387,7 @@ export default {
             replyData.createdAt = dayjs(replyData.createdAt).format('M-D H:mm');
             if (this.replyType === 'post' && this.isNoMore) {
                 this.comments.push(replyData);
-            } else {
+            } else if (this.replyReply !== 'post') {
                 // eslint-disable-next-line
                 const replyComment = this.comments.find(
                     comment => comment._id === this.currentReplyCommentId,
@@ -406,6 +430,7 @@ export default {
             }
         },
         async handleLikePost() {
+            wx.vibrateShort();
             this.post.isLike = !this.post.isLike;
             if (this.post.isLike) {
                 this.post.likeCount += 1;
@@ -447,6 +472,7 @@ export default {
             }
         },
         async handleLikeComment(commentId) {
+            wx.vibrateShort();
             console.log(commentId);
             const comment = this.comments.find(item => item._id === commentId);
 
@@ -490,18 +516,19 @@ export default {
                     .remove();
             }
         },
-        replyComment(commentId, nickName) {
-            console.log(commentId);
-            this.currentReplyCommentId = commentId;
-            this.inputPlacehodler = `回复${nickName}`;
+        replyComment(comment) {
+            this.currentReplyComment = comment;
+            this.currentReplyCommentId = comment._id;
+            this.inputPlacehodler = `回复${comment.nickName}`;
             this.inputFocus = true;
             console.log('reply comment focus');
             this.replyType = 'comment';
         },
-        replyReply(commentId, replyId, nickName) {
+        replyReply(commentId, reply) {
             this.currentReplyCommentId = commentId;
-            this.currentReplyReplyId = replyId;
-            this.inputPlacehodler = `回复${nickName}`;
+            this.currentReplyReplyId = reply._id;
+            this.currentReplyReply = reply;
+            this.inputPlacehodler = `回复${reply.nickName}`;
             this.inputFocus = true;
             console.log('reply reply focus');
             this.replyType = 'reply';
@@ -510,6 +537,7 @@ export default {
         handleInputBlur() {
             this.inputPlacehodler = '回复楼主';
             this.inputFocus = false;
+            this.inputCache = this.input;
             this.input = '';
         },
         handleInputFocus() {
@@ -521,13 +549,37 @@ export default {
         },
     },
 
-    mounted() {
+    async mounted() {
         const { id } = this.$root.$mp.query;
         db
             .collection('post')
             .doc(id)
             .update({ data: { viewCount: _.inc(1) } });
-        this.post = { ...this.posts.find(post => post._id === id), isLike: false };
+        this.post = {
+            userInfo: { avatarUrl: '' },
+            imgs: [],
+            ...this.posts.find(post => post._id === id),
+            isLike: false,
+        };
+        if (!this.post._id) {
+            try {
+                const { data } = await db
+                    .collection('post')
+                    .doc(id)
+                    .get();
+                // eslint-disable-next-line
+                this.post = data;
+            } catch (e) {
+                wx.showModal({
+                    title: '提示',
+                    content: '帖子已被删除',
+                    showCancel: false,
+                    success() {
+                        wx.navigateBack();
+                    },
+                });
+            }
+        }
         this.fetchIsLikePost();
         this.fetchComments();
         console.log('post', this.post);
@@ -591,12 +643,12 @@ export default {
 
     border-radius: 50%;
     &.liked {
-        color: #e54d42;
-        border: 1px solid #e54d42;
+        color: #0081ff;
+        border: 1px solid #0081ff;
     }
 }
 .comment-liked {
-    color: #e54d42;
+    color: #0081ff;
 }
 .share {
     margin: 0;

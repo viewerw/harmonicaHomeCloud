@@ -1,7 +1,7 @@
 
 <script>
-import env from '@config';
-import { mapActions } from 'vuex';
+import { mapActions, mapState } from 'vuex';
+import db, { _ } from '@/utils';
 
 export default {
     globalConfig: {
@@ -9,20 +9,15 @@ export default {
             'van-tag': 'vant-weapp/dist/tag/index',
         },
     },
+    computed: {
+        ...mapState(['openid']),
+    },
     methods: {
-        ...mapActions(['initLogin']),
+        ...mapActions(['initLogin', 'initReview']),
     },
     created() {
-        if (!wx.cloud) {
-            console.error('请使用 2.2.3 或以上的基础库以使用云能力');
-        } else {
-            console.log(env);
-            wx.cloud.init({
-                env,
-                traceUser: true,
-            });
-            this.initLogin();
-        }
+        this.initLogin();
+        this.initReview();
     },
     mounted() {
         wx.getSystemInfo({
@@ -33,6 +28,41 @@ export default {
                 const temp = custom.bottom + custom.top;
                 global.CustomBar = temp - e.statusBarHeight;
             },
+        });
+    },
+    async onHide() {
+        let formIds = wx.getStorageSync('formIds');
+        if (formIds && formIds.length > 20) {
+            formIds = formIds.slice(0, 20);
+        }
+        if (formIds && formIds.length > 0) {
+            const { data } = await db
+                .collection('formid')
+                .where({ _openid: this.openid })
+                .get();
+            if (data.length === 0) {
+                db.collection('formid').add({
+                    data: { formIds },
+                });
+            } else if (data.length > 20) {
+                db
+                    .collection('formid')
+                    .doc(data[0]._id)
+                    .update({
+                        data: { formIds: _.set(formIds) },
+                    });
+            } else {
+                db
+                    .collection('formid')
+                    .doc(data[0]._id)
+                    .update({
+                        data: { formIds: _.push(formIds) },
+                    });
+            }
+        }
+        wx.setStorage({
+            key: 'formIds',
+            data: [],
         });
     },
 };
@@ -47,11 +77,20 @@ export default {
 .container {
     width: 100vw;
 }
+
 .van-tabs__line {
     background-color: @primary !important;
 }
 .active-tab {
     color: @primary !important;
+}
+.my-van-nav {
+    color: #333333;
+    background: #f5f5f5;
+    border: none;
+}
+.cu-list.menu-avatar > .cu-item:after {
+    border: none !important;
 }
 /* this rule will be remove */
 * {
@@ -71,7 +110,7 @@ button {
 }
 
 page {
-    background: linear-gradient(to bottom, #fff, #edf2fd);
+    background: #f5f5f5;
     background-size: cover;
     background-attachment: fixed;
 }

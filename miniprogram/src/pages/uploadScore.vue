@@ -3,7 +3,11 @@
     <form>
       <view class="cu-form-group margin-top">
         <view class="title">谱名</view>
-        <input placeholder="谱名" @input="titleInput">
+        <input placeholder="输入谱名" @input="titleInput" />
+      </view>
+      <view class="cu-form-group margin-top">
+        <view class="title">上传者</view>
+        <input placeholder="输入上传者昵称" @input="uperInput" />
       </view>
       <view class="cu-form-group margin-top">
         <view class="title">分类</view>
@@ -24,7 +28,7 @@
             @tap="ViewImage"
             :data-url="imgList[index]"
           >
-            <img :src="imgList[index]" mode="aspectFill">
+            <img :src="imgList[index]" mode="aspectFill" />
             <view class="cu-tag bg-red" @tap.stop="DelImg" :data-index="index">
               <text class="cuIcon-close"></text>
             </view>
@@ -38,7 +42,7 @@
         <view class="action">数字曲谱</view>
       </view>
       <view class="cu-form-group">
-        <textarea maxlength="-1" @input="textInput" placeholder="多行文本输入框"></textarea>
+        <textarea maxlength="-1" @input="textInput" placeholder="数字简谱文本"></textarea>
       </view>
       <view class="cu-bar bg-white margin-top">
         <view class="action">适合演奏的口琴</view>
@@ -74,7 +78,7 @@
         <view class="action">曲谱描述</view>
       </view>
       <view class="cu-form-group">
-        <textarea maxlength="-1" @input="descriptionInput" placeholder="多行文本输入框"></textarea>
+        <textarea maxlength="-1" @input="descriptionInput" placeholder="输入曲谱的其他信息"></textarea>
       </view>
       <view class="padding-xl">
         <div class="cu-btn block bg-blue margin-tb-sm lg" @click="handleSubmit">
@@ -172,6 +176,9 @@ export default {
         titleInput(e) {
             this.formData = { ...this.formData, name: e.mp.detail.value };
         },
+        uperInput(e) {
+            this.formData = { ...this.formData, uper: e.mp.detail.value };
+        },
         textInput(e) {
             this.formData = { ...this.formData, text: e.mp.detail.value };
         },
@@ -190,6 +197,13 @@ export default {
             });
         },
         async handleSubmit() {
+            if (!this.formData.name) {
+                wx.showToast({
+                    icon: 'none',
+                    title: '请输入曲谱名',
+                });
+                return;
+            }
             this.isLoading = true;
             // eslint-disable-next-line
             const uploads = this.imgList.map(
@@ -210,11 +224,11 @@ export default {
             try {
                 await db.collection('songscore').add({
                     data: {
-                        ...this.formData,
                         date: new Date(),
                         star: 0,
                         unstar: 0,
-                        uper: 'viewerw',
+                        uper: '未知',
+                        ...this.formData,
                     },
                 });
                 wx.showToast({
@@ -222,6 +236,7 @@ export default {
                     title: '上传成功',
                 });
                 Object.assign(this.$data, this.$options.data());
+                wx.navigateBack();
             } catch (e) {
                 console.log(e);
                 wx.showToast({

@@ -29,13 +29,16 @@ export default {
         const { id } = this.$root.$mp.query;
         try {
             const {
-                data: { content },
+                data: { content, title },
             } = await db
                 .collection('article')
                 .doc(id)
                 .get();
             console.log(content);
             this.md = content.replace(/\\n\\n/g, '\n\n');
+            wx.setNavigationBarTitle({
+                title,
+            });
         } catch (e) {
             console.log(e);
         }

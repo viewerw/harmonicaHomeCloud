@@ -46,6 +46,7 @@ module.exports = {
         indent: ['error', 4, { SwitchCase: 1 }],
         'no-console': 'off',
         'no-underscore-dangle': 'off',
+        'function-paren-newline': 'off',
     },
     globals: {
         Vue: true,

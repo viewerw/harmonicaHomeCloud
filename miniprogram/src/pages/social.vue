@@ -1,7 +1,9 @@
 <template>
+  <!-- <formwrp> -->
   <div class="container">
     <div
       class="cu-card dynamic no-card margin-bottom"
+      hover-class="hover-view"
       v-for="(post,index_) in posts"
       :key="post._id"
       @click="navPostDetail(post._id)"
@@ -25,7 +27,12 @@
           class="grid flex-sub padding-lr"
           :class="post.imgs.length>1?'col-'+post.imgs.length+' grid-square':'grid-square col-2'"
         >
-          <div class="bg-img img-wrp" v-for="(item,index) in post.imgs" :key="index">
+          <div
+            class="bg-img img-wrp"
+            v-for="(item,index) in post.imgs"
+            :key="index"
+            @click.stop="previewImage(item,post.imgs)"
+          >
             <img class="post-img" mode="aspectFill" :src="item" />
           </div>
         </div>
@@ -39,7 +46,7 @@
         </div>
       </div>
     </div>
-    <div class="write-wrp">
+    <div class="write-wrp" v-if="!isReview">
       <navigator v-if="isLogin" class="write-btn" url="/pages/writePost">
         <img src="/static/img/write-btn.svg" />
       </navigator>
@@ -48,18 +55,20 @@
       </button>
     </div>
   </div>
+  <!-- </formwrp> -->
 </template>
 
 <script>
 import { mapState, mapMutations } from 'vuex';
-import db from '@/utils';
 import dayjs from 'dayjs';
+
+import db, { showLoading, hideLoading } from '../utils';
 
 export default {
     mpType: 'page',
 
     config: {
-        navigationBarTitleText: '社区',
+        navigationBarTitleText: '',
         enablePullDownRefresh: true,
         onReachBottomDistance: 150,
     },
@@ -68,14 +77,22 @@ export default {
             isNoMore: false,
             ipp: 20,
             page: 1,
+            isReview: false,
         };
     },
     computed: {
-        ...mapState(['isLogin', 'posts']),
+        ...mapState(['isLogin', 'posts', 'nextPage', 'isReview']),
     },
 
     methods: {
-        ...mapMutations(['setIsLogin', 'setPosts']),
+        ...mapMutations(['setIsLogin', 'setPosts', 'setNextPage', 'setUserInfo']),
+        previewImage(img, imgs) {
+            console.log('preview');
+            wx.previewImage({
+                urls: imgs,
+                current: img,
+            });
+        },
         handleUserInfo(e) {
             console.log(e);
             if (/fail/.test(e.mp.detail.errMsg)) {
@@ -86,7 +103,7 @@ export default {
                 return;
             }
             wx.setStorageSync('userinfo', e.mp.detail.userInfo);
-
+            this.setUserInfo(e.mp.detail.userInfo);
             db.collection('user').add({
                 data: {
                     userinfo: e.mp.detail.userInfo,
@@ -103,6 +120,7 @@ export default {
             });
         },
         async fetchPosts() {
+            showLoading();
             try {
                 const {
                     result: { posts },
@@ -121,6 +139,8 @@ export default {
                 this.setPosts(posts);
             } catch (e) {
                 console.log(e);
+            } finally {
+                hideLoading();
             }
         },
         navPostDetail(id) {
@@ -128,39 +148,44 @@ export default {
                 url: `/pages/postDetail?id=${id}`,
             });
         },
-    },
-    async onPullDownRefresh() {
-        await this.fetchPosts();
-        wx.stopPullDownRefresh();
+        async onPullDownRefresh() {
+            await this.fetchPosts();
+            wx.stopPullDownRefresh();
+        },
+        async onReachBottom() {
+            if (this.isNoMore) return;
+            showLoading();
+            this.page = this.page + 1;
+            const { ipp, page } = this;
+            try {
+                const {
+                    result: { posts },
+                } = await wx.cloud.callFunction({
+                    name: 'getPosts',
+                    data: { ipp, page },
+                });
+                if (posts.length < ipp) {
+                    this.isNoMore = true;
+                }
+                // eslint-disable-next-line
+                posts.map(post => {
+                    // eslint-disable-next-line
+                    post.updatedAt = dayjs(post.updatedAt).format('M-D H:m');
+                    // eslint-disable-next-line
+                    post.createdAt = dayjs(post.createdAt).format('M-D H:m');
+                });
+                this.setPosts([...this.posts, ...posts]);
+            } catch (e) {
+                console.log(e);
+            } finally {
+                hideLoading();
+            }
+        },
     },
 
-    mounted() {
-        this.fetchPosts();
-    },
-    async onReachBottom() {
-        if (this.isNoMore) return;
-        this.page = this.page + 1;
-        const { ipp, page } = this;
-        try {
-            const {
-                result: { posts },
-            } = await wx.cloud.callFunction({
-                name: 'getPosts',
-                data: { ipp, page },
-            });
-            if (posts.length < ipp) {
-                this.isNoMore = true;
-            }
-            // eslint-disable-next-line
-            posts.map(post => {
-                // eslint-disable-next-line
-                post.updatedAt = dayjs(post.updatedAt).format('M-D H:m');
-                // eslint-disable-next-line
-                post.createdAt = dayjs(post.createdAt).format('M-D H:m');
-            });
-            this.setPosts([...this.posts, ...posts]);
-        } catch (e) {
-            console.log(e);
+    async mounted() {
+        if (!this.isReview) {
+            this.fetchPosts();
         }
     },
 };
@@ -168,13 +193,17 @@ export default {
 
 <style lang="less" scoped>
 .container {
+    padding-bottom: 55px;
     background: #f5f5f5;
     .write-wrp {
         position: fixed;
         width: 50px;
         height: 50px;
-        bottom: 30px;
+        bottom: 80px;
         right: 15px;
+        border: 2px solid #fff;
+        border-radius: 50%;
+        box-sizing: border-box;
         .write-btn {
             width: 100%;
             height: 100%;
@@ -197,6 +226,9 @@ export default {
     .post-img {
         width: 100%;
         height: 100%;
+    }
+    .hover-view {
+        opacity: 0.5;
     }
 }
 </style>

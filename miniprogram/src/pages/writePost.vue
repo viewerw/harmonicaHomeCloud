@@ -43,6 +43,8 @@
 </template>
 
 <script>
+import { mapState } from 'vuex';
+
 import db, { toast, uuidv4, showLoading, hideLoading } from '../utils';
 
 export default {
@@ -59,11 +61,13 @@ export default {
             content: '',
         };
     },
-
+    computed: {
+        ...mapState(['userInfo']),
+    },
     methods: {
         ChooseImage() {
             wx.chooseImage({
-                count: 4,
+                count: 3,
                 sizeType: ['original', 'compressed'],
                 sourceType: ['album'],
                 success: res => {
@@ -129,8 +133,12 @@ export default {
             try {
                 await db.collection('post').add({
                     data: {
-                        createdAt: new Date(),
-                        updatedAt: new Date(),
+                        createdAt: db.serverDate(),
+                        updatedAt: db.serverDate(),
+                        userInfo: {
+                            nickName: this.userInfo.nickName,
+                            avatarUrl: this.userInfo.avatarUrl,
+                        },
                         title: this.title,
                         content: this.content,
                         imgs: this.imgFileIds,
@@ -159,4 +167,9 @@ export default {
 </script>
 
 <style lang = "less" scoped>
+.container {
+    width: 100vw;
+    height: 100vh;
+    background-color: #f5f5f5;
+}
 </style>

@@ -1,6 +1,10 @@
 {
     "pages": [
         {
+            "path": "pages/index",
+            "config": { "navigationBarBackgroundColor": "#eee" }
+        },
+        {
             "path": "pages/tutorial",
             "config": { "navigationBarBackgroundColor": "#eee" }
         },
@@ -17,6 +21,12 @@
             "config": { "navigationBarBackgroundColor": "#eee" }
         },
         {
+            "path": "pages/tonalModification"
+        },
+        {
+            "path": "pages/about"
+        },
+        {
             "path": "pages/article"
         },
         {
@@ -30,39 +40,15 @@
         },
         {
             "path": "pages/postDetail"
+        },
+        {
+            "path": "pages/message"
+        },
+        {
+            "path": "pages/commentDetail"
         }
     ],
-    "tabBar": {
-        "color": "#8799a3",
-        "selectedColor": "#0081ff",
-        "backgroundColor": "#ffffff",
-        "list": [
-            {
-                "pagePath": "pages/tutorial",
-                "text": "教程",
-                "iconPath": "/static/img/tutorial-bar.png",
-                "selectedIconPath": "/static/img/tutorial-bar-active.png"
-            },
-            {
-                "pagePath": "pages/score",
-                "text": "曲谱",
-                "iconPath": "/static/img/score-bar.png",
-                "selectedIconPath": "/static/img/score-bar-active.png"
-            },
-            {
-                "pagePath": "pages/social",
-                "text": "社区",
-                "iconPath": "/static/img/social-bar.png",
-                "selectedIconPath": "/static/img/social-bar-active.png"
-            },
-            {
-                "pagePath": "pages/mine",
-                "text": "我的",
-                "iconPath": "/static/img/mine-bar.png",
-                "selectedIconPath": "/static/img/mine-bar-active.png"
-            }
-        ]
-    },
+
     "window": {
         "backgroundTextStyle": "light",
         "navigationBarBackgroundColor": "#fff",
