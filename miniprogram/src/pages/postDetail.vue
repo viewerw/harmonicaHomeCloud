@@ -27,6 +27,16 @@
             @click="previewImage(img)"
           />
         </div>
+        <div v-if="post.record" hover-stop-propagation class="audio padding">
+          <div
+            class="sound"
+            :class="{playing:post.isPlaying}"
+            @click.stop="playRecord(post.record)"
+          >
+            <img :src="post.isPlaying?'/static/img/sound-playing.gif':'/static/img/sound-line.png'" />
+          </div>
+          <div class="duration">56''</div>
+        </div>
         <div class="text-gray text-sm text-right padding flex tools">
           <div @click="handleLikePost">
             <text
@@ -35,7 +45,7 @@
             ></text>
             <text>{{post.likeCount}}</text>
           </div>
-          <div class="text-grey">
+          <div class="text-grey" @click="handleCollect">
             <text class="cuIcon-favorfill circle margin-lr-xs"></text>
             <text>收藏</text>
           </div>
@@ -186,6 +196,16 @@ export default {
                 current: img,
             });
         },
+        playRecord(audio) {
+            if (this.post.isPlaying) {
+                this.recordAudioContext.stop();
+                this.post.isPlaying = false;
+            } else {
+                this.recordAudioContext.src = audio;
+
+                this.post.isPlaying = true;
+            }
+        },
         deletePost() {
             wx.showModal({
                 title: '提示',
@@ -202,6 +222,11 @@ export default {
                         hideLoading();
                     }
                 },
+            });
+        },
+        handleCollect() {
+            wx.showToast({
+                title: '收藏成功！',
             });
         },
         async sendComment(e) {
@@ -558,6 +583,7 @@ export default {
         this.post = {
             userInfo: { avatarUrl: '' },
             imgs: [],
+            isPlaying: false,
             ...this.posts.find(post => post._id === id),
             isLike: false,
         };
@@ -568,6 +594,7 @@ export default {
                     .doc(id)
                     .get();
                 // eslint-disable-next-line
+                data.isPlaying = false;
                 this.post = data;
             } catch (e) {
                 wx.showModal({
@@ -583,9 +610,16 @@ export default {
         this.fetchIsLikePost();
         this.fetchComments();
         console.log('post', this.post);
+
+        this.recordAudioContext = wx.createInnerAudioContext();
+        this.recordAudioContext.autoplay = true;
+        this.recordAudioContext.onEnded(() => {
+            this.post.isPlaying = false;
+        });
     },
     onUnload() {
         Object.assign(this.$data, this.$options.data());
+        this.recordAudioContext.stop();
     },
     async onReachBottom() {
         if (this.isNoMore) return;

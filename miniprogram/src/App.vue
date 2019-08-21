@@ -2,6 +2,7 @@
 <script>
 import { mapActions, mapState } from 'vuex';
 import db, { _ } from '@/utils';
+import { checkRecordAuth } from '@/utils/record';
 
 export default {
     globalConfig: {
@@ -18,6 +19,7 @@ export default {
     created() {
         this.initLogin();
         this.initReview();
+        checkRecordAuth();
     },
     mounted() {
         wx.getSystemInfo({
@@ -44,7 +46,7 @@ export default {
                 db.collection('formid').add({
                     data: { formIds },
                 });
-            } else if (data.length > 20) {
+            } else if (data[0].formIds.length > 20) {
                 db
                     .collection('formid')
                     .doc(data[0]._id)
@@ -73,6 +75,36 @@ export default {
 @import 'colorui/icon.css';
 
 @primary: #0081ff;
+
+//audio
+.audio {
+    font-size: 13px;
+    text-align: left;
+    color: #999999;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    .sound {
+        width: 120px;
+        height: 28px;
+        border-radius: 4px;
+        background-color: #ffffff;
+        box-shadow: 0 1px 4px 0 rgba(229, 229, 229, 0.5);
+        border: solid 0.5px #e0e0e0;
+        img {
+            width: 20px;
+            height: 20px;
+            margin: 4px 9px;
+        }
+        &.playing {
+            background-color: #eeeeee;
+        }
+    }
+    .duration {
+        margin-left: 10px;
+    }
+}
 
 .container {
     width: 100vw;

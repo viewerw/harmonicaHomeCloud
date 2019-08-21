@@ -34,7 +34,7 @@ export default {
                 .collection('article')
                 .doc(id)
                 .get();
-            console.log(content);
+
             this.md = content.replace(/\\n\\n/g, '\n\n');
             wx.setNavigationBarTitle({
                 title,

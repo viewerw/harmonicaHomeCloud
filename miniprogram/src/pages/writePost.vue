@@ -15,12 +15,12 @@
           placeholder="内容"
         ></textarea>
       </div>
-      <div class="cu-bar bg-white margin-top">
+      <!-- <div class="cu-bar bg-white margin-top">
         <div class="action">图片</div>
         <div class="action">{{imgList.length}}/3</div>
-      </div>
+      </div>-->
       <div class="cu-form-group">
-        <div class="grid col-4 grid-square flex-sub">
+        <div class="grid col-4 grid-square flex-sub img-container">
           <div
             class="bg-img"
             v-for="(item,index) in imgList"
@@ -38,6 +38,9 @@
           </div>
         </div>
       </div>
+      <div class="cu-form-group record">
+        <record-btns @reRecord="reRecord" @recordEnd="recordEnd" />
+      </div>
     </form>
   </div>
 </template>
@@ -46,6 +49,8 @@
 import { mapState } from 'vuex';
 
 import db, { toast, uuidv4, showLoading, hideLoading } from '../utils';
+import { uploadRecord } from '../utils/record';
+import RecordBtns from '../components/recordBtns';
 
 export default {
     mpType: 'page',
@@ -59,7 +64,12 @@ export default {
             imgFileIds: [],
             title: '',
             content: '',
+            recordTempFile: null,
+            recordFileId: '',
         };
+    },
+    components: {
+        'record-btns': RecordBtns,
     },
     computed: {
         ...mapState(['userInfo']),
@@ -99,6 +109,13 @@ export default {
                 },
             });
         },
+        recordEnd(file) {
+            console.log('end', file);
+            this.recordTempFile = file;
+        },
+        reRecord() {
+            this.recordTempFile = null;
+        },
         handleTitleChangle(e) {
             this.title = e.mp.detail.value;
         },
@@ -130,6 +147,10 @@ export default {
             console.log(res);
             const imgFileIds = res.map(r => r.fileID);
             this.imgFileIds = imgFileIds;
+            if (this.recordTempFile) {
+                console.log('jjjj');
+                this.recordFileId = await uploadRecord(this.recordTempFile);
+            }
             try {
                 await db.collection('post').add({
                     data: {
@@ -142,6 +163,7 @@ export default {
                         title: this.title,
                         content: this.content,
                         imgs: this.imgFileIds,
+                        record: this.recordFileId,
                         viewCount: 0,
                         likeCount: 0,
                         commentCount: 0,
@@ -171,5 +193,14 @@ export default {
     width: 100vw;
     height: 100vh;
     background-color: #f5f5f5;
+    .cu-form-group + .cu-form-group {
+        border: none;
+    }
+    .record {
+        width: 100%;
+        height: 120px;
+        display: flex;
+        align-items: center;
+    }
 }
 </style>

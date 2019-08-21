@@ -98,7 +98,7 @@ export default {
         return {
             formData: {},
             classIndex: -1,
-            picker: ['ACG', '流行', '古典', '其他'],
+            picker: ['ACG', '流行', '古典', '热门', '儿歌', '民谣', '其他'],
             imgList: [],
             isLoading: false,
             checkbox: [

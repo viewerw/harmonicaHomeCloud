@@ -5,22 +5,6 @@
             "config": { "navigationBarBackgroundColor": "#eee" }
         },
         {
-            "path": "pages/tutorial",
-            "config": { "navigationBarBackgroundColor": "#eee" }
-        },
-        {
-            "path": "pages/score",
-            "config": { "navigationBarBackgroundColor": "#eee" }
-        },
-        {
-            "path": "pages/social",
-            "config": { "navigationBarBackgroundColor": "#eee" }
-        },
-        {
-            "path": "pages/mine",
-            "config": { "navigationBarBackgroundColor": "#eee" }
-        },
-        {
             "path": "pages/tonalModification"
         },
         {

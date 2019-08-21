@@ -30,7 +30,7 @@
           <text class="text-grey">给作者加油</text>
         </div>
       </div>
-      <div class="cu-item arrow" @click="wxGroup">
+      <div v-if="!isReview" class="cu-item arrow" @click="wxGroup">
         <div class="content">
           <text class="cuIcon-group_fill text-cyan"></text>
           <text class="text-grey">口琴交流群</text>

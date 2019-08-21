@@ -28,7 +28,7 @@
         <div class="nav-name">{{item.name}}</div>
         <text :class="'cuIcon-' + item.cuIcon"></text>
       </div>
-      <navigator url="/pages/uploadScore" type="navigate" class="upload text-blue">上传谱子</navigator>
+      <!-- <navigator url="/pages/uploadScore" type="navigate" class="upload text-blue">上传谱子</navigator> -->
     </div>
     <div v-else class="cu-list menu card-menu margin-top padding flex-center">
       <div
@@ -53,6 +53,19 @@ export default {
     data() {
         return {
             songClasses: [
+                {
+                    title: '热门',
+                    name: 'hot',
+
+                    color: 'red',
+                    cuIcon: 'btn',
+                },
+                {
+                    title: '儿歌',
+                    name: 'children',
+                    color: 'green',
+                    cuIcon: 'loading2',
+                },
                 {
                     title: '流行',
                     name: 'popular',

@@ -133,6 +133,9 @@ export default {
 </script>
 
 <style lang = "less" scoped>
+.container {
+    padding-bottom: 50px;
+}
 .btn {
     font-size: initial;
     text-align: initial;

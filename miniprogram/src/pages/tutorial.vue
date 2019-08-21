@@ -74,7 +74,7 @@ export default {
             ],
             tutorials: [],
             basicArticles: [],
-            doubileArticles: [],
+            doubleArticles: [],
             halfArticles: [],
             blueArticles: [],
             active: 0,
@@ -84,14 +84,15 @@ export default {
     methods: {
         async onChange(e) {
             const tabIndex = e.mp.detail.index;
-            if (tabIndex === 1 && this.doubileArticles.length === 0) {
+            this.active = tabIndex;
+            if (tabIndex === 1 && this.doubleArticles.length === 0) {
                 const {
                     data: { articles },
                 } = await db
                     .collection('tutorials')
                     .doc('106c5c86-40e6-44ab-bed5-208d3ea7b8d0')
                     .get();
-                this.doubileArticles = articles;
+                this.doubleArticles = articles;
             } else if (tabIndex === 2 && this.halfArticles.length === 0) {
                 const {
                     data: { articles },

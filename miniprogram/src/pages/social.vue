@@ -31,10 +31,21 @@
             class="bg-img img-wrp"
             v-for="(item,index) in post.imgs"
             :key="index"
+            hover-stop-propagation
             @click.stop="previewImage(item,post.imgs)"
           >
             <img class="post-img" mode="aspectFill" :src="item" />
           </div>
+        </div>
+        <div v-if="post.record" hover-stop-propagation class="audio padding">
+          <div
+            class="sound"
+            :class="{playing:post.isPlaying}"
+            @click.stop="playRecord(post,index_)"
+          >
+            <img :src="post.isPlaying?'/static/img/sound-playing.gif':'/static/img/sound-line.png'" />
+          </div>
+          <div class="duration">56''</div>
         </div>
         <div class="text-gray text-sm text-right padding">
           <text class="cuIcon-attentionfill margin-lr-xs"></text>
@@ -93,6 +104,28 @@ export default {
                 current: img,
             });
         },
+        playRecord(post, index) {
+            console.log('play audio', post.record);
+            if (post.isPlaying) {
+                this.recordAudioContext.stop();
+                this.posts.forEach(item => {
+                    // eslint-disable-next-line
+                    item.isPlaying = false;
+                });
+                return;
+            }
+            this.recordAudioContext.src = post.record;
+            this.recordAudioContext.play();
+            this.posts.forEach((item, ind) => {
+                if (ind !== index) {
+                    // eslint-disable-next-line
+                    item.isPlaying = false;
+                } else {
+                    // eslint-disable-next-line
+                    item.isPlaying = true;
+                }
+            });
+        },
         handleUserInfo(e) {
             console.log(e);
             if (/fail/.test(e.mp.detail.errMsg)) {
@@ -135,6 +168,8 @@ export default {
                     post.updatedAt = dayjs(post.updatedAt).format('M-D H:mm');
                     // eslint-disable-next-line
                     post.createdAt = dayjs(post.createdAt).format('M-D H:mm');
+                    // eslint-disable-next-line
+                    post.isPlaying = false;
                 });
                 this.setPosts(posts);
             } catch (e) {
@@ -173,6 +208,8 @@ export default {
                     post.updatedAt = dayjs(post.updatedAt).format('M-D H:m');
                     // eslint-disable-next-line
                     post.createdAt = dayjs(post.createdAt).format('M-D H:m');
+                    // eslint-disable-next-line
+                    post.isPlaying = false;
                 });
                 this.setPosts([...this.posts, ...posts]);
             } catch (e) {
@@ -187,6 +224,24 @@ export default {
         if (!this.isReview) {
             this.fetchPosts();
         }
+        this.recordAudioContext = wx.createInnerAudioContext();
+        this.recordAudioContext.autoplay = true;
+        this.recordAudioContext.onEnded(() => {
+            this.posts.forEach(item => {
+                // eslint-disable-next-line
+                item.isPlaying = false;
+            });
+        });
+    },
+    onHide() {
+        this.recordAudioContext.stop();
+        this.posts.forEach(item => {
+            // eslint-disable-next-line
+            item.isPlaying = false;
+        });
+    },
+    destroyed() {
+        this.recordAudioContext.stop();
     },
 };
 </script>
